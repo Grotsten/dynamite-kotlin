@@ -19,6 +19,7 @@ class MyBot : Bot {
     private var turnCount = 0
     private var score = 0
     private var losingStreak = 0
+    private var winningStreak = 0
 
     // Distribution of 2 turn patterns
     private var probabilityMap = mutableMapOf<Move, MutableMap<Move, MutableMap<Move, Int>>>(
@@ -101,7 +102,7 @@ class MyBot : Bot {
         }
         if (gamestate.rounds.isNotEmpty()) {
             if (gamestate.rounds.last().p1 == Move.D && move == Move.D) {
-                move = opponentPredictor(opponentMoves, myMoves, gamestate)
+                while (move == Move.D) move = opponentPredictor(opponentMoves, myMoves, gamestate)
             }
         }
         if (move == Move.D) {
@@ -136,7 +137,11 @@ class MyBot : Bot {
                 } else {
                     losingStreak = 0
                 }
-
+                if (previousMove == Outcome.W) {
+                    winningStreak += 1
+                } else {
+                    winningStreak = 0
+                }
 
             }
             if (opponentMoves.size > 1) {
@@ -164,7 +169,16 @@ class MyBot : Bot {
                 opponentMoves = opponentMoves + previousMove
                 moveCountMap[previousMove] = moveCountMap[previousMove]?.plus(1)!!
                 outcomeCountMap[previousOutcome] = outcomeCountMap[previousOutcome]?.plus(1)!!
-                if (previousOutcome == Outcome.L) losingStreak += 1
+                if (previousOutcome == Outcome.L) {
+                    losingStreak += 1
+                } else {
+                    losingStreak = 0
+                }
+                if (previousMove == Outcome.W) {
+                    winningStreak += 1
+                } else {
+                    winningStreak = 0
+                }
             }
         }
     }
@@ -237,7 +251,7 @@ class MyBot : Bot {
         } else {
             Choice(winningMove(turn.move), turn.probability)
         }
-        if (losingStreak > 4) {
+        if (losingStreak > 3) {
             var rand = listOf<Int>(0, 1, 2)
             if (myDynamite > 0) {
                 when (rand.shuffled().first()) {
@@ -258,6 +272,11 @@ class MyBot : Bot {
                 if (rand.shuffled().first() == 0) {
                     out = Choice(Move.D, 1f)
                 }
+            }
+        }
+        if (winningStreak > 1) {
+            if (out.move == Move.D) {
+                out = Choice(heuristicCalc(opponentMoves, myMoves, gamestate), 0f)
             }
         }
 
